@@ -1,0 +1,4 @@
+#!/bin/sh
+
+wget --no-check-certificate https://wordpress.org/latest.tar.gz
+tar xvfz latest.tar.gz 

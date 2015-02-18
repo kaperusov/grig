@@ -1,11 +1,20 @@
 #!/bin/sh
 
 #
+# -- check arguments
+#
+if [ $# -eq 0 ]
+then 
+	echo "No arguments supplied"
+	exit
+fi
+
+#
 # -- init variables
 #
-IP_ADDRESS=111.111.111.111
+IP_ADDRESS=`/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
 DOCUMENT_ROOT=/var/www
-SITE_NAME=yurist.ru
+SITE_NAME=$1
 SITE_HOME=${DOCUMENT_ROOT}/${SITE_NAME}/public_html
 
 #

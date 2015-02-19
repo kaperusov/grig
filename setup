@@ -1,0 +1,104 @@
+#!/bin/sh
+
+#
+# -- grab user input
+#
+DEFAULT_SITE_NAME="example.com"
+
+read -p "Type the name of site, followed by [${DEFAULT_SITE_NAME}]: " SITE_NAME
+SITE_NAME=${SITE_NAME:-$DEFAULT_SITE_NAME}
+echo "OK, site name is ${SITE_NAME}"
+
+
+#
+# -- init variables
+#
+IP_ADDRESS=`/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+DOCUMENT_ROOT=/var/www
+SITE_HOME=${DOCUMENT_ROOT}/${SITE_NAME}/public_html
+
+#
+# -- create a home directory for future site
+#
+sudo mkdir -p ${SITE_HOME}
+sudo chown -R $USER:$USER ${SITE_HOME}
+sudo chmod -R 755 ${DOCUMENT_ROOT}
+cd ~
+ln -s ${SITE_HOME} ${SITE_NAME}/public_html
+
+#
+# -- enable site
+#
+sudo cp /etc/apache2/sites-available/default /etc/apache2/sites-available/${SITE_NAME}
+sudo sed -i "s#DocumentRoot ${DOCUMENT_ROOT}#DocumentRoot ${SITE_HOME}#" /etc/apache2/sites-available/${SITE_NAME}
+sudo a2ensite ${SITE_NAME}
+sudo service apache2 restart
+
+#
+# -- add virtual address to hosts
+#
+function addHost() {
+	DEFAULT_IP_ADDRESS=`/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+	read -p "Enter IP address [${DEFAULT_IP_ADDRESS}]: " IP_ADDRESS
+	IP_ADDRESS=${IP_ADDRESS:-$DEFAULT_IP_ADDRESS}
+	echo "IP is ${IP_ADDRESS}"
+	sudo echo ${IP_ADDRESS}" "${SITE_NAME} >> /etc/hosts
+}
+
+while true; do
+	default_answer="Y"
+	read -p "Add IP address this virtual box to /etc/hosts? Y/n: " yn
+	yn=${yn:-$default_answer}
+	case $yn in
+		[Yy]* ) addHost; break;;
+		[Nn]* ) break;;
+		* ) 
+			echo "Please answer yes or no." ;;
+	esac
+done
+
+#
+# -- create test index.php page
+#
+function createIndexPage() {
+	TEST_PAGE=${SITE_HOME}/index.php
+cat >${TEST_PAGE} <<EOL
+<html>
+  <head>
+    <title>Welcome to ${SITE_NAME}!</title>
+  </head>
+  <body>
+    <h1>Success! The ${SITE_NAME} virtual host is working!</h1>
+    <?phpinfo();?>
+  </body>
+</html>
+EOL
+} # end of function createIndexPage
+
+while true; do
+	default_answer="Y"
+	read -p "Create test index.php page in ${SITE_HOME}? Y/n: " yn
+	yn=${yn:-$default_answer}
+	case $yn in
+		[Yy]* ) createIndexPage; break;;
+		[Nn]* ) break;;
+		* ) 
+			echo "Please answer yes or no." ;;
+	esac
+done
+
+
+
+#
+# -- test
+#
+#wget 127.0.0.1/${SITE_NAME}/public_html/index.php
+
+while true; do
+    read -p "Do you wish to install phpMyAdmin?" yn
+    case $yn in
+        [Yy]* ) sh ./install_phpmyadmin; break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
